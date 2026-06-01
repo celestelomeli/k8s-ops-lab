@@ -28,7 +28,8 @@ func getProducts(w http.ResponseWriter, r *http.Request) {
 
 // getProduct returns a single product by ID
 func getProduct(w http.ResponseWriter, r *http.Request) {
-	// PathValue extracts {id} from the URL 
+	// PathValue extracts {id} from the URL — requires Go 1.22+
+	id := r.PathValue("id")
 	w.Header().Set("Content-Type", "application/json")
 	// ignoring id for now, always returns first product
 	json.NewEncoder(w).Encode(map[string]any{"id": id, "product": mockProducts[0]})
