@@ -3,52 +3,95 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
 	"net/http"
+	"strconv"
 	"time"
 )
 
-// mock data 
-var mockProducts = []Product{
-	{ID: 1, Name: "Widget", Description: "A small widget", Quantity: 100, Price: 9.99, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-	{ID: 2, Name: "Gadget", Description: "A useful gadget", Quantity: 50, Price: 24.99, CreatedAt: time.Now(), UpdatedAt: time.Now()},
-}
-
-// healthHandler returns a simple JSON status, used by Kubernetes liveness/readiness probes
+// Returns a simple JSON status, used by Kubernetes liveness/readiness probes
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "application/json")
+	// map used to create simple json object instead of struct 
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
-// getProducts returns all products in the inventory
+// Returns all products in the inventory
 func getProducts(w http.ResponseWriter, r *http.Request) {
+	rows, err := DB.Query("SELECT id, name, description, quantity, price, created_at, updated_at FROM products")
+	if err != nil {
+		http.Error(w, "failed to query products", http.StatusInternalServerError)
+		return
+	}
+	defer rows.Close() // close rows when done
+
+	// iterate over rows and build a slice of products
+	products := []Product{}
+	for rows.Next() {
+		var p Product
+		err := rows.Scan(&p.ID, &p.Name, &p.Description, &p.Quantity, &p.Price, &p.CreatedAt, &p.UpdatedAt)
+		if err != nil {
+			http.Error(w, "failed to scan product", http.StatusInternalServerError)
+			return
+		}
+		products = append(products, p)
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	json.NewEncoder(w).Encode(mockProducts)
+	json.NewEncoder(w).Encode(products)
 }
 
-// getProduct returns a single product by ID
+// Returns a single product by ID
 func getProduct(w http.ResponseWriter, r *http.Request) {
-	// PathValue extracts {id} from the URL — requires Go 1.22+
-	id := r.PathValue("id")
+	// convert id from string to int
+	id, err := strconv.Atoi(r.PathValue("id"))
+	if err != nil {
+		http.Error(w, "invalid product id", http.StatusBadRequest)
+		return
+	}
+
+	// query the product by id, expecting one row
+	var p Product
+	err = DB.QueryRow(
+		"SELECT id, name, description, quantity, price, created_at, updated_at FROM products WHERE id = $1", id,
+	).Scan(&p.ID, &p.Name, &p.Description, &p.Quantity, &p.Price, &p.CreatedAt, &p.UpdatedAt)
+
+	if err == sql.ErrNoRows {
+		http.Error(w, "product not found", http.StatusNotFound)
+		return
+	}
+	if err != nil {
+		http.Error(w, "failed to query product", http.StatusInternalServerError)
+		return
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	// ignoring id for now, always returns first product
-	json.NewEncoder(w).Encode(map[string]any{"id": id, "product": mockProducts[0]})
+	json.NewEncoder(w).Encode(p)
 }
 
-// decodes a JSON request body and returns the created product with a 201 status
+// Inserts a new product and returns it with a 201 status
 func createProduct(w http.ResponseWriter, r *http.Request) {
 	var p Product
-	// decode the JSON request body into a Product struct
 	if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 		http.Error(w, "invalid request body", http.StatusBadRequest)
 		return
 	}
-	// mock: assign a fake ID and timestamps
-	p.ID = len(mockProducts) + 1
-	p.CreatedAt = time.Now()
-	p.UpdatedAt = time.Now()
+
+	// INSERT and use RETURNING to get the created row back in one query
+	err := DB.QueryRow(
+		`INSERT INTO products (name, description, quantity, price, created_at, updated_at)
+		 VALUES ($1, $2, $3, $4, $5, $6)
+		 RETURNING id, name, description, quantity, price, created_at, updated_at`,
+		p.Name, p.Description, p.Quantity, p.Price, time.Now(), time.Now(),
+	).Scan(&p.ID, &p.Name, &p.Description, &p.Quantity, &p.Price, &p.CreatedAt, &p.UpdatedAt)
+
+	if err != nil {
+		http.Error(w, "failed to create product", http.StatusInternalServerError)
+		return
+	}
 
 	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusCreated) // 201 Created
+	w.WriteHeader(http.StatusCreated)
 	json.NewEncoder(w).Encode(p)
 }
