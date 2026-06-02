@@ -7,6 +7,8 @@ import (
 )
 
 func main() {
+	initDB() // connect to Postgres before starting the server
+
 	// mux is the router that maps incoming URL paths to handler functions
 	mux := http.NewServeMux()
 
