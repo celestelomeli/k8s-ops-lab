@@ -16,10 +16,24 @@ spec:
     spec:
       containers:
         - name: api
-          image: inventory-api:v2
+          image: inventory-api:v3
           imagePullPolicy: IfNotPresent   # use local image, don't pull from registry
           ports:
             - containerPort: 8080
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5    # wait for app to start before first check
+            periodSeconds: 10         # check every 10 seconds
+            failureThreshold: 3       # restart after 3 consecutive failures
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 5          # check readiness more frequently than liveness
+            failureThreshold: 3       # remove from service rotation after 3 failures
           envFrom:
             - configMapRef:
                 name: inventory-config    # injects DB_HOST, DB_PORT, DB_NAME, DB_USER

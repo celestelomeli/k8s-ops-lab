@@ -10,10 +10,15 @@ import (
 	"time"
 )
 
-// Returns a simple JSON status, used by Kubernetes liveness/readiness probes
+// Returns app health status — used by Kubernetes liveness/readiness probes.
+// Pings the database so probes reflect real connectivity, not just process status.
 func healthHandler(w http.ResponseWriter, r *http.Request) {
+	if err := DB.Ping(); err != nil {
+		w.WriteHeader(http.StatusServiceUnavailable) // 503 — signals to Kubernetes something is wrong
+		json.NewEncoder(w).Encode(map[string]string{"status": "unhealthy", "error": err.Error()})
+		return
+	}
 	w.Header().Set("Content-Type", "application/json")
-	// map used to create simple json object instead of struct 
 	json.NewEncoder(w).Encode(map[string]string{"status": "ok"})
 }
 
