@@ -1,0 +1,27 @@
+# api-deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-api
+  namespace: inventory
+spec:
+  replicas: 1                    # how many pods to keep running
+  selector:
+    matchLabels:
+      app: inventory-api         # pods this Deployment manages
+  template:                      # pod blueprint
+    metadata:
+      labels:
+        app: inventory-api       # must match selector above
+    spec:
+      containers:
+        - name: api
+          image: inventory-api:v2
+          imagePullPolicy: IfNotPresent   # use local image, don't pull from registry
+          ports:
+            - containerPort: 8080
+          envFrom:
+            - configMapRef:
+                name: inventory-config    # injects DB_HOST, DB_PORT, DB_NAME, DB_USER
+            - secretRef:
+                name: inventory-secret    # injects DB_PASSWORD
