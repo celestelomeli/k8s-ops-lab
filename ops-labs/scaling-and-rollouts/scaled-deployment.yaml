@@ -1,0 +1,23 @@
+# Example — 3 replica deployment for scaling demo
+# Scale back down with: kubectl scale deployment inventory-api --replicas=1 -n inventory
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-api
+  namespace: inventory
+spec:
+  replicas: 3                    # scaled up from 1 to demonstrate load balancing
+  selector:
+    matchLabels:
+      app: inventory-api
+  template:
+    metadata:
+      labels:
+        app: inventory-api
+    spec:
+      containers:
+        - name: api
+          image: inventory-api:v3
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080

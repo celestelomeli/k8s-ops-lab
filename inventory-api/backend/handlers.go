@@ -5,8 +5,10 @@ package main
 import (
 	"database/sql"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 )
 
@@ -95,6 +97,12 @@ func createProduct(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "failed to create product", http.StatusInternalServerError)
 		return
 	}
+
+	// call the notifier service by DNS name 
+	go func() {
+		body := fmt.Sprintf(`{"product_name":"%s"}`, p.Name)
+		http.Post("http://notifier:9090/notify", "application/json", strings.NewReader(body))
+	}()
 
 	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusCreated)

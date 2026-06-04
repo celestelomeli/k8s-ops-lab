@@ -1,0 +1,36 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: notifier
+  namespace: inventory
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: notifier
+  template:
+    metadata:
+      labels:
+        app: notifier
+    spec:
+      containers:
+        - name: notifier
+          image: notifier:v1
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 9090
+          env:
+            - name: SERVICE_NAME
+              value: "notifier-service"
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 9090
+            initialDelaySeconds: 5
+            periodSeconds: 5

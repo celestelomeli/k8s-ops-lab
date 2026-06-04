@@ -1,0 +1,22 @@
+# Non-existent image tag causes ImagePullBackOff
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: inventory-api
+  namespace: inventory
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: inventory-api
+  template:
+    metadata:
+      labels:
+        app: inventory-api
+    spec:
+      containers:
+        - name: api
+          image: inventory-api:doesnotexist   # tag does not exist in any registry
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 8080
