@@ -1,0 +1,12 @@
+# Selector typo causes Service to route to zero pods
+apiVersion: v1
+kind: Service
+metadata:
+  name: inventory-api
+  namespace: inventory
+spec:
+  selector:
+    app: inventory-api-typo   # Does not match pod label "app: inventory-api"
+  ports:
+    - port: 80
+      targetPort: 8080

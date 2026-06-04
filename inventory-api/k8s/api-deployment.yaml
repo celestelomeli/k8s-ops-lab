@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: api
-          image: inventory-api:v3
+          image: inventory-api:v4
           imagePullPolicy: IfNotPresent   # use local image, don't pull from registry
           ports:
             - containerPort: 8080
