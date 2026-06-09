@@ -1,0 +1,38 @@
+---
+- name: initialize control plane
+  command: >
+    kubeadm init
+    --pod-network-cidr=192.168.0.0/16
+    --apiserver-advertise-address={{ ansible_default_ipv4.address }}
+  args:
+    creates: /etc/kubernetes/admin.conf
+
+- name: create .kube directory for ubuntu user
+  file:
+    path: /home/ubuntu/.kube
+    state: directory
+    owner: ubuntu
+    group: ubuntu
+    mode: '0755'
+
+- name: copy admin.conf for ubuntu user
+  copy:
+    src: /etc/kubernetes/admin.conf
+    dest: /home/ubuntu/.kube/config
+    remote_src: yes
+    owner: ubuntu
+    group: ubuntu
+    mode: '0600'
+
+- name: install calico CNI
+  command: kubectl apply -f https://raw.githubusercontent.com/projectcalico/calico/v3.27.0/manifests/calico.yaml
+  environment:
+    KUBECONFIG: /etc/kubernetes/admin.conf
+
+- name: generate join command for workers
+  command: kubeadm token create --print-join-command
+  register: join_command_output
+
+- name: expose join command as a fact for the workers play
+  set_fact:
+    kubeadm_join_command: "{{ join_command_output.stdout }}"
