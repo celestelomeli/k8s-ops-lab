@@ -1,0 +1,14 @@
+plugin: amazon.aws.aws_ec2
+regions:
+  - us-east-1
+filters:
+  instance-state-name: running
+  tag:Name:
+    - k8s-control-plane
+    - k8s-worker
+hostnames:
+  - instance-id
+groups:
+  control_plane: "tags.Role == 'control-plane'"
+  workers: "tags.Role == 'worker'"
+  k8s_nodes: "tags.Role in ['control-plane', 'worker']"

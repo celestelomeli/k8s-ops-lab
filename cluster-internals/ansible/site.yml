@@ -1,0 +1,20 @@
+---
+- name: configure all nodes
+  hosts: k8s_nodes
+  become: yes
+  roles:
+    - node-prereqs
+
+- name: initialize control plane
+  hosts: control_plane
+  become: yes
+  roles:
+    - kubeadm-init
+
+- name: join workers to cluster
+  hosts: workers
+  become: yes
+  vars:
+    join_command: "{{ hostvars[groups['control_plane'][0]]['kubeadm_join_command'] }}"
+  roles:
+    - kubeadm-join
