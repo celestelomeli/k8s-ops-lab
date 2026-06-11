@@ -1,0 +1,54 @@
+name: Build and Push Images
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "inventory-api/**"
+      - "notifier/**"
+      - ".github/workflows/ci.yml"
+  workflow_dispatch:
+
+permissions:
+  id-token: write # required for the GitHub -> AWS OIDC handshake
+  contents: read
+
+env:
+  AWS_REGION: us-east-1
+
+jobs:
+  build-push:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        include:
+          - name: inventory-api
+            context: inventory-api/backend
+          - name: notifier
+            context: notifier
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Log in to Amazon ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          platforms: linux/amd64
+          push: true
+          tags: |
+            ${{ steps.ecr.outputs.registry }}/${{ matrix.name }}:${{ github.sha }}
+            ${{ steps.ecr.outputs.registry }}/${{ matrix.name }}:latest
