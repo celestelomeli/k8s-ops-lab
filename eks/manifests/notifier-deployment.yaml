@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
         - name: notifier
-          image: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/notifier:v1
+          # ArgoCD's Kustomize override
+          image: notifier:7da166a31903d865e9cda499d0ddeafb38bf8c1c
           imagePullPolicy: Always
           ports:
             - containerPort: 9090

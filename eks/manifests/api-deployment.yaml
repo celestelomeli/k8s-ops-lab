@@ -15,7 +15,8 @@ spec:
     spec:
       containers:
         - name: api
-          image: ACCOUNT_ID.dkr.ecr.us-east-1.amazonaws.com/inventory-api:v1
+          # ArgoCD's Kustomize override (in the cluster-side Application) adds the real ECR registry at sync 
+          image: inventory-api:7da166a31903d865e9cda499d0ddeafb38bf8c1c
           imagePullPolicy: Always
           ports:
             - containerPort: 8080
