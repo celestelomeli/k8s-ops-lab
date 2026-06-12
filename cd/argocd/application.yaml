@@ -9,7 +9,7 @@ spec:
 
   source:
     repoURL: https://github.com/celestelomeli/k8s-ops-lab.git
-    targetRevision: issue11
+    targetRevision: main
     path: eks/manifests
     kustomize:
       # git (ArgoCD diffs on it) and only the account-ID registry is added here.
