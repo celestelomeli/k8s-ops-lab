@@ -12,9 +12,7 @@ spec:
     targetRevision: main
     path: eks/manifests
     kustomize:
-      # git (ArgoCD diffs on it) and only the account-ID registry is added here.
-      # __ACCOUNT_ID__ is a distinctive placeholder so the apply-time sed can't
-      # accidentally match anything else. Substitute it locally, never commit the real value.
+      # git (ArgoCD diffs on it) 
       images:
         - inventory-api=__ACCOUNT_ID__.dkr.ecr.us-east-1.amazonaws.com/inventory-api
         - notifier=__ACCOUNT_ID__.dkr.ecr.us-east-1.amazonaws.com/notifier
@@ -30,8 +28,8 @@ spec:
     syncOptions:
       - CreateNamespace=true
     retry:
-      # external-secret/secret-store need the ESO CRDs 
-      # retry lets the first sync succeed once those CRDs are present.
+      # external-secret/secret-store need the ESO CRDs
+      # retry lets the first sync succeed
       limit: 5
       backoff:
         duration: 10s
