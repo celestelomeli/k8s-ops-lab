@@ -20,6 +20,8 @@ Copy `.env.example` to `.env` and fill in your values, then:
 docker-compose up
 ```
 
+![Local development with Docker Compose](docs/local.png)
+
 ## Kubernetes Deployment
 
 ```bash

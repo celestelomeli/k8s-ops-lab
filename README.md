@@ -12,6 +12,16 @@ failure scenarios.
 
 Both run locally (Docker Compose) and on Kubernetes.
 
+## Architecture
+
+The deployment runs on AWS EKS, with CI through GitHub Actions and CD
+through ArgoCD. Diagrams for the local and self-managed setups live in
+[inventory-api/](inventory-api/) and [cluster-internals/](cluster-internals/).
+
+![EKS architecture with CI via GitHub Actions and CD via ArgoCD](docs/eks.png)
+
+> Diagrams as code ([Diagrams](https://github.com/mingrammer/diagrams)) — source in [docs/diagrams/](docs/diagrams/).
+
 ## Repository structure
 
 | Path | What's there |
@@ -29,7 +39,7 @@ Both run locally (Docker Compose) and on Kubernetes.
 - Running Kubernetes two ways: self-managed with kubeadm, and managed with EKS.
 - Infrastructure as code with Terraform, and configuration with Ansible.
 - Secrets managed externally (AWS Secrets Manager via External Secrets Operator),
-  authenticated with IRSA
+  authenticated with IRSA (IAM Roles for Service Accounts)
 - A CI/CD pipeline: CI builds and pushes images; ArgoCD reconciles the cluster
   to match this repo.
 - Health probes, autoscaling, observability, and a set of
