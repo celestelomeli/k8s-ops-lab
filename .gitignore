@@ -8,6 +8,10 @@
 *.so
 *.dylib
 
+# Compiled service binaries from `go build` (named after the module, no extension)
+inventory-api/backend/inventory
+notifier/notifier
+
 # Test binary, built with `go test -c`
 *.test
 

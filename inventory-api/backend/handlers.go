@@ -1,19 +1,17 @@
 // handlers.go contains the HTTP handler functions for each route
-// Each handler reads the request and writes a JSON response
 package main
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
-	"fmt"
+	"log"
 	"net/http"
 	"strconv"
-	"strings"
 	"time"
 )
 
-// Returns app health status — used by Kubernetes liveness/readiness probes.
-// Pings the database so probes reflect real connectivity, not just process status.
+// Returns app health status — used by Kubernetes liveness/readiness probes
 func healthHandler(w http.ResponseWriter, r *http.Request) {
 	if err := DB.Ping(); err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable) // 503 — signals to Kubernetes something is wrong
@@ -51,7 +49,6 @@ func getProducts(w http.ResponseWriter, r *http.Request) {
 
 // Returns a single product by ID
 func getProduct(w http.ResponseWriter, r *http.Request) {
-	// convert id from string to int
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil {
 		http.Error(w, "invalid product id", http.StatusBadRequest)
@@ -98,10 +95,16 @@ func createProduct(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// call the notifier service by DNS name 
+	// Notify the notifier service by DNS name.
 	go func() {
-		body := fmt.Sprintf(`{"product_name":"%s"}`, p.Name)
-		http.Post("http://notifier:9090/notify", "application/json", strings.NewReader(body))
+		payload, _ := json.Marshal(map[string]string{"product_name": p.Name})
+		client := &http.Client{Timeout: 5 * time.Second}
+		resp, err := client.Post("http://notifier:9090/notify", "application/json", bytes.NewReader(payload))
+		if err != nil {
+			log.Printf("notifier call failed for product %q: %v", p.Name, err)
+			return
+		}
+		defer resp.Body.Close()
 	}()
 
 	w.Header().Set("Content-Type", "application/json")

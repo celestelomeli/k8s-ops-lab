@@ -7,17 +7,76 @@ on:
       - "inventory-api/**"
       - "notifier/**"
       - ".github/workflows/ci.yml"
+  pull_request:
+    branches: [main]
+    paths:
+      - "inventory-api/**"
+      - "notifier/**"
+      - ".github/workflows/ci.yml"
   workflow_dispatch:
 
 permissions:
-  id-token: write # required for the GitHub -> AWS OIDC handshake
+  id-token: write # AWS OIDC handshake
   contents: read
 
 env:
   AWS_REGION: us-east-1
 
 jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: inventory-api/backend/go.mod
+
+      - name: Run unit tests
+        working-directory: inventory-api/backend
+        run: go test -v ./...
+
+  integration-test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine 
+        env:
+          # throwaway credentials for a test db
+          POSTGRES_USER: inventory
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: inventory
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: inventory-api/backend/go.mod
+
+      - name: Run integration tests
+        working-directory: inventory-api/backend
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_USER: inventory
+          DB_PASSWORD: test_password
+          DB_NAME: inventory
+        run: go test -tags=integration -v ./...
+
   build-push:
+    needs: [test, integration-test] # only build/push images if all tests pass
+    if: github.event_name == 'push' # don't run on PRs
     runs-on: ubuntu-latest
     strategy:
       matrix:
